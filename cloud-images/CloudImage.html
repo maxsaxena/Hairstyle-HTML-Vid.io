@@ -519,39 +519,58 @@ document.addEventListener("DOMContentLoaded", function() {
 })();
 </script>
 
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
+  const CACHE_NAME = "hair-cache-v1";
   const images = document.querySelectorAll("img[data-src]");
 
-  const lazyLoad = (img) => {
-    img.src = img.dataset.src;
-    img.onload = () => {
+  async function loadImage(img) {
+    const url = img.dataset.src;
+
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(url);
+
+      if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        img.src = URL.createObjectURL(blob);
+        img.classList.add("loaded");
+        return;
+      }
+
+      // Not cached → fetch & store
+      const response = await fetch(url);
+      await cache.put(url, response.clone());
+
+      const blob = await response.blob();
+      img.src = URL.createObjectURL(blob);
       img.classList.add("loaded");
-    };
-  };
+
+    } catch (err) {
+      // fallback (important for file:// or errors)
+      img.src = url;
+      img.onload = () => img.classList.add("loaded");
+    }
+  }
 
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries, obs) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          lazyLoad(entry.target);
+          loadImage(entry.target);
           obs.unobserve(entry.target);
         }
       });
     });
 
     images.forEach(img => observer.observe(img));
-
   } else {
-    // Fallback (older WebView)
-    images.forEach(img => lazyLoad(img));
+    images.forEach(img => loadImage(img));
   }
 
 });
 </script>
-
 </body>
 </html>
 
