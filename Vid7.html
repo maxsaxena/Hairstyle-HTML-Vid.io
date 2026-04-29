@@ -122,8 +122,8 @@ a:visited{}
 	<br><br><table width="100%" border="0" cellspacing="0" cellpadding="0">
   <tbody>
     <tr>
-      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid4.html"> < Last Video </a> </button></td>
-      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid6.html">  Next Video >  </a></button></td>
+      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid6.html"> < Last Video </a> </button></td>
+      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid8.html">  Next Video >  </a></button></td>
     </tr>
   </tbody>
 </table>
@@ -258,6 +258,7 @@ a:visited{}
     </a>
   </div>
 </div>
+<!-- ================= POPUP AD SCRIPT (4 MIN LOGIC) ================= -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   var video = document.getElementById("mainVideo");
@@ -282,35 +283,53 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
+
 (function () {
-  var MIN_DELAY_MS = 1500; // 1.5s
-  var MAX_DELAY_MS = 3000; // 3s
-  var SEEN_KEY = "popup_ad_seen_v1";
+  var MIN_DELAY_MS = 1500;
+  var MAX_DELAY_MS = 3000;
 
-  // --- Helpers ---
-  function hasLocalStorage() {
-    try { localStorage.setItem("__test","1"); localStorage.removeItem("__test"); return true; } catch(e){ return false; }
-  }
-  function getSeen() {
-    try { if (hasLocalStorage()) return localStorage.getItem(SEEN_KEY) === "1"; } catch(e){}
-    return document.cookie.split("; ").some(c => c.startsWith(SEEN_KEY + "=1"));
-  }
-  function setSeen() {
-    try { if (hasLocalStorage()) localStorage.setItem(SEEN_KEY, "1"); } catch(e){}
-    var d = new Date(); d.setFullYear(d.getFullYear() + 1);
-    document.cookie = SEEN_KEY + "=1; path=/; expires=" + d.toUTCString();
+  var STORAGE_KEY = "popup_ad_last_time";
+  var SHOW_INTERVAL = 240000; // 4 minutes
+
+  // --- storage helpers ---
+  function getLastTime() {
+    try {
+      return parseInt(localStorage.getItem(STORAGE_KEY)) || 0;
+    } catch(e) {
+      var match = document.cookie.match(new RegExp(STORAGE_KEY + "=([^;]+)"));
+      return match ? parseInt(match[1]) : 0;
+    }
   }
 
-  // --- Main ---
+  function setLastTime() {
+    var now = Date.now();
+    try {
+      localStorage.setItem(STORAGE_KEY, now);
+    } catch(e) {}
+
+    var d = new Date();
+    d.setTime(d.getTime() + (7 * 24 * 60 * 60 * 1000));
+    document.cookie = STORAGE_KEY + "=" + now + "; path=/; expires=" + d.toUTCString();
+  }
+
   var overlay = document.getElementById("adOverlay");
-  if (!overlay || getSeen()) return;
+  if (!overlay) return;
+
+  var lastTime = getLastTime();
+  var now = Date.now();
+
+  // ⛔ Skip if opened within 2 minutes
+  if (now - lastTime < SHOW_INTERVAL) return;
 
   var originalOverflow;
+
   function openAd() {
-    setSeen();
+    setLastTime();
+
     overlay.style.display = "flex";
     overlay.classList.add("fade-in");
     overlay.setAttribute("aria-hidden", "false");
+
     originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
   }
@@ -321,25 +340,27 @@ document.addEventListener("DOMContentLoaded", function() {
     document.body.style.overflow = originalOverflow || "";
   }
 
+  // Close actions
   overlay.querySelector(".ad-close").addEventListener("click", closeAd);
-  overlay.addEventListener("click", e => { if (e.target === overlay) closeAd(); });
+  overlay.addEventListener("click", function(e){
+    if (e.target === overlay) closeAd();
+  });
 
-  // --- Wait logic: after delay + after autoplay video ends ---
+  // --- delay + video-aware logic ---
   var delay = Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS + 1)) + MIN_DELAY_MS;
 
   function showWhenVideosDone() {
-    // Find all autoplay videos
     var videos = document.querySelectorAll("video[autoplay]");
-    if (!videos.length) return openAd(); // no video, show now
 
-    var playingVideos = Array.from(videos).filter(v => !v.paused && !v.ended);
+    if (!videos.length) return openAd();
 
-    // If none are currently playing → show now
-    if (!playingVideos.length) return openAd();
+    var playing = Array.from(videos).filter(v => !v.paused && !v.ended);
 
-    // Otherwise, wait until all stop
-    var remaining = playingVideos.length;
-    playingVideos.forEach(function(v){
+    if (!playing.length) return openAd();
+
+    var remaining = playing.length;
+
+    playing.forEach(function(v){
       function done() {
         v.removeEventListener("ended", done);
         v.removeEventListener("pause", done);
@@ -350,18 +371,20 @@ document.addEventListener("DOMContentLoaded", function() {
       v.addEventListener("pause", done);
     });
 
-    // Safety timeout: if user keeps video looping forever → show ad after 120s max
+    // fallback max wait
     setTimeout(openAd, 120000);
   }
 
   if (document.readyState === "complete" || document.readyState === "interactive") {
     setTimeout(showWhenVideosDone, delay);
   } else {
-    window.addEventListener("DOMContentLoaded", () => setTimeout(showWhenVideosDone, delay));
+    window.addEventListener("DOMContentLoaded", function(){
+      setTimeout(showWhenVideosDone, delay);
+    });
   }
+
 })();
 </script>
-
 
 </body>
 

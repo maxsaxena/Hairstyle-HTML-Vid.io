@@ -123,8 +123,8 @@ a:visited{}
 	<br><br><table width="100%" border="0" cellspacing="0" cellpadding="0">
   <tbody>
     <tr>
-      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid4.html"> < Last Video </a> </button></td>
-      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid6.html">  Next Video >  </a></button></td>
+      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid39.html"> < Last Video </a> </button></td>
+      <td><button> <a style="font-size:21px;cursor:pointer;color:#e31265; margin-left:10px; margin-top:10px; text-decoration:none;" href="Vid41.html">  Next Video >  </a></button></td>
     </tr>
   </tbody>
 </table>
@@ -259,14 +259,38 @@ a:visited{}
     </a>
   </div>
 </div>
-<!-- ================= POPUP AD SCRIPT (2 MIN LOGIC) ================= -->
+<!-- ================= POPUP AD SCRIPT (4 MIN LOGIC) ================= -->
 <script>
+document.addEventListener("DOMContentLoaded", function() {
+  var video = document.getElementById("mainVideo");
+  var playButton = document.getElementById("playButton");
+
+  // Play when overlay clicked
+  playButton.addEventListener("click", function() {
+    video.play();
+    video.controls = true; // show native controls after play
+    playButton.parentElement.classList.add("playing");
+  });
+
+  // When paused, show button again
+  video.addEventListener("pause", function() {
+    playButton.parentElement.classList.remove("playing");
+  });
+
+  // Hide play overlay if video autoplayed
+  if (!video.paused) {
+    playButton.parentElement.classList.add("playing");
+  }
+});
+
+
+
 (function () {
   var MIN_DELAY_MS = 1500;
   var MAX_DELAY_MS = 3000;
 
   var STORAGE_KEY = "popup_ad_last_time";
-  var SHOW_INTERVAL = 120000; // 2 minutes
+  var SHOW_INTERVAL = 240000; // 4 minutes
 
   // --- storage helpers ---
   function getLastTime() {
